@@ -1,0 +1,65 @@
+#!/usr/bin/env ruby
+
+require 'optparse'
+require 'ostruct'
+
+class RunCommandGenerator
+
+  def self.parse(args)
+    options = OpenStruct.new
+    options.processes = "1"
+    options.environment = "dev"
+    options.fileType = "test"
+
+    opt_parser = OptionParser.new do |opts|
+
+      # Optional argument; multi-line description.
+      opts.on("-p", "--processes [EXTENSION]",
+              "Specify processes",
+              "  (make backup if EXTENSION supplied)") do |ext|
+        options.processes = ext
+      end
+
+      opts.on("-e", "--environment [EXTENSION]",
+              "Specify environment",
+              "  (make backup if EXTENSION supplied)") do |ext|
+        options.environment = ext
+      end
+
+      opts.on("-t", "--type [EXTENSION]",
+              "Specify File Type",
+              "  (make backup if EXTENSION supplied)") do |ext|
+        options.fileType = ext
+      end
+
+      # Another typical switch to print the version.
+      opts.on_tail("--version", "Show version") do
+        puts ::Version.join('.')
+        exit
+      end
+    end
+
+    opt_parser.parse!(args)
+    options
+  end
+
+end
+
+options = RunCommandGenerator.parse(ARGV)
+test_case_name = ""
+
+ARGV.each do|a|
+  test_case_name = test_case_name + a + ' '
+end
+
+# Check if user has provided Test Case Name
+if test_case_name.chop.empty?
+  raise "Please provide Test Case Name"
+end
+
+cmd = "pabot --processes " + options.processes + " --testlevelsplit --variablefile ./Properties/" + options.environment + "_env_variables.py --variable remote_url: --outputdir=./output --exclude exclude --" + options.fileType + " '" + test_case_name.chop + "' ."
+
+puts "Executing command:-\n"
+puts "\e[32m#{cmd}\e[0m"
+
+Dir.chdir("#{ENV['HOME']}/di-automation"){system(cmd)}
