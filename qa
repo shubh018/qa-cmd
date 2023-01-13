@@ -10,32 +10,28 @@ class RunCommandGenerator
     options.processes = "1"
     options.environment = "dev"
     options.fileType = "test"
+    options.dryRun = ""
 
     opt_parser = OptionParser.new do |opts|
 
       # Optional argument; multi-line description.
-      opts.on("-p", "--processes [EXTENSION]",
-              "Specify processes",
-              "  (make backup if EXTENSION supplied)") do |ext|
+      opts.on("-p", "--processes [ARG]",
+              "Specify processes, defaults to 1 if not specified") do |ext|
         options.processes = ext
       end
 
-      opts.on("-e", "--environment [EXTENSION]",
-              "Specify environment",
-              "  (make backup if EXTENSION supplied)") do |ext|
+      opts.on("-e", "--environment [ARG]",
+              "Specify environment, defaults to 'dev' if not specified") do |ext|
         options.environment = ext
       end
 
-      opts.on("-t", "--type [EXTENSION]",
-              "Specify File Type",
-              "  (make backup if EXTENSION supplied)") do |ext|
+      opts.on("-t", "--type [ARG]",
+              "Specify File Type, defaults to 'test' if not specified") do |ext|
         options.fileType = ext
       end
-
-      # Another typical switch to print the version.
-      opts.on_tail("--version", "Show version") do
-        puts ::Version.join('.')
-        exit
+      opts.on("-d", "--dry [ARG]",
+              "Pass if you want to perform dry run, just specify '-d'") do |ext|
+        options.dryRun = ext
       end
     end
 
@@ -46,20 +42,27 @@ class RunCommandGenerator
 end
 
 options = RunCommandGenerator.parse(ARGV)
-test_case_name = ""
 
-ARGV.each do|a|
-  test_case_name = test_case_name + a + ' '
+if options && options.dryRun.nil?
+  cmd = "robot --variablefile ./Properties/dev_env_variables.py --outputdir=./output --variable remote_url: --dryrun --exclude exclude  --include RFR  --include Planner ."
+  
+else
+  test_case_name = ""
+
+  ARGV.each do|a|
+    test_case_name = test_case_name + a + ' '
+  end
+
+  # Check if user has provided Test Case Name
+  if test_case_name.chop.empty?
+    raise "Please provide Test Case Name"
+  end
+
+  cmd = "pabot --processes " + options.processes + " --testlevelsplit --variablefile ./Properties/" + options.environment + "_env_variables.py --variable remote_url: --outputdir=./output --exclude exclude --" + options.fileType + " '" + test_case_name.chop + "' ."
+
 end
-
-# Check if user has provided Test Case Name
-if test_case_name.chop.empty?
-  raise "Please provide Test Case Name"
-end
-
-cmd = "pabot --processes " + options.processes + " --testlevelsplit --variablefile ./Properties/" + options.environment + "_env_variables.py --variable remote_url: --outputdir=./output --exclude exclude --" + options.fileType + " '" + test_case_name.chop + "' ."
 
 puts "Executing command:-\n"
 puts "\e[32m#{cmd}\e[0m"
 
-Dir.chdir("#{ENV['HOME']}/di-automation"){system(cmd)}
+# Dir.chdir("#{ENV['HOME']}/di-automation"){system(cmd)}
