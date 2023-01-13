@@ -65,4 +65,4 @@ end
 puts "Executing command:-\n"
 puts "\e[32m#{cmd}\e[0m"
 
-# Dir.chdir("#{ENV['HOME']}/di-automation"){system(cmd)}
+Dir.chdir("#{ENV['HOME']}/di-automation"){system(cmd)}
