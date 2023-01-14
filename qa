@@ -41,28 +41,50 @@ class RunCommandGenerator
 
 end
 
+
+
+# Get User Input
 options = RunCommandGenerator.parse(ARGV)
 
+# Check if User Input is empty
 if options && options.dryRun.nil?
   cmd = "robot --variablefile ./Properties/dev_env_variables.py --outputdir=./output --variable remote_url: --dryrun --exclude exclude  --include RFR  --include Planner ."
   
 else
+  # Parse Test Case Name
   test_case_name = ""
-
   ARGV.each do|a|
     test_case_name = test_case_name + a + ' '
   end
 
   # Check if user has provided Test Case Name
-  if test_case_name.chop.empty?
-    raise "Please provide Test Case Name"
+  begin
+    if test_case_name.chop.empty?
+      raise "Test Case Name empty"
+    end
+  rescue
+    puts "Please provide Test Case Name or '-d' or '--dry' to perform Dry Run"
+    exit
   end
 
+  # Build Command to Execute Test Case
   cmd = "pabot --processes " + options.processes + " --testlevelsplit --variablefile ./Properties/" + options.environment + "_env_variables.py --variable remote_url: --outputdir=./output --exclude exclude --" + options.fileType + " '" + test_case_name.chop + "' ."
-
 end
-
 puts "Executing command:-\n"
 puts "\e[32m#{cmd}\e[0m"
 
-Dir.chdir("#{ENV['HOME']}/di-automation"){system(cmd)}
+# Get Project Folder Path
+folder_name = ""
+vari = Dir.glob("#{ENV['HOME']}/**/*di-automation")
+vari.each do|t|
+  if not t.include? "iCloud Drive (Archive)"
+    folder_name = t
+  end
+end
+
+# Print Project Folder Name
+puts "Project folder:-\n"
+puts "\e[32m#{folder_name}\e[0m"
+
+# Execute Command to run Test Case
+Dir.chdir(folder_name){system(cmd)}
