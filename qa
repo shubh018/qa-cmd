@@ -46,34 +46,13 @@ end
 # Get User Input
 options = RunCommandGenerator.parse(ARGV)
 
-# Check if User Input is empty
-if options && options.dryRun.nil?
-  cmd = "robot --variablefile ./Properties/dev_env_variables.py --outputdir=./output --variable remote_url: --dryrun --exclude exclude  --include RFR  --include Planner ."
-  
-else
-  # Parse Test Case Name
-  test_case_name = ""
-  ARGV.each do|a|
-    test_case_name = test_case_name + a + ' '
-  end
-
-  # Check if user has provided Test Case Name
-  begin
-    if test_case_name.chop.empty?
-      raise "Test Case Name empty"
-    end
-  rescue
-    puts "Please provide Test Case Name or '-d' or '--dry' to perform Dry Run"
-    exit
-  end
-
-  # Build Command to Execute Test Case
-  cmd = "pabot --processes " + options.processes + " --testlevelsplit --variablefile ./Properties/" + options.environment + "_env_variables.py --variable remote_url: --outputdir=./output --exclude exclude --" + options.fileType + " '" + test_case_name.chop + "' ."
+# Check if no Test Case Name is provided
+if !!options.dryRun && ARGV.length == 0
+  puts "Please provide Test Case Name or '-d' or '--dry' to perform Dry Run"
+  exit
 end
-puts "Executing command:-\n"
-puts "\e[32m#{cmd}\e[0m"
 
-# Get Project Folder Path
+# Get Project Folder Name
 folder_name = ""
 vari = Dir.glob("#{ENV['HOME']}/**/*di-automation")
 vari.each do|t|
@@ -82,9 +61,29 @@ vari.each do|t|
   end
 end
 
-# Print Project Folder Name
-puts "Project folder:-\n"
-puts "\e[32m#{folder_name}\e[0m"
+# Dry Run
+if not !!options.dryRun
+  cmd = "robot --variablefile ./Properties/dev_env_variables.py --outputdir=./output --variable remote_url: --dryrun --exclude exclude  --include RFR  --include Planner ."
 
-# Execute Command to run Test Case
+else
+  # Get Individual Test Case Name
+  test_case_name = ""
+  ARGV.each do|a|
+    test_case_name = test_case_name + a + ' '
+  end
+
+  test_cases = test_case_name.split(", ")
+
+  test_execution_command = ""
+  # Run pabot command for each Test Case
+  test_cases.each do |test_case_name|
+    test_execution_command = test_execution_command + "--" + options.fileType + " '" + test_case_name.strip + "' "
+  end
+
+  cmd = "pabot --processes " + options.processes + " --testlevelsplit --variablefile ./Properties/" + options.environment + "_env_variables.py --variable remote_url: --outputdir=./output --exclude exclude" + " " + test_execution_command.strip + " ."
+end
+
+puts "Executing command:-\n"
+puts "\e[32m#{cmd}\e[0m"
+
 Dir.chdir(folder_name){system(cmd)}
